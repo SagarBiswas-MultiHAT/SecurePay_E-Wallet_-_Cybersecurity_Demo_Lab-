@@ -13,10 +13,13 @@ SecurePay is a full-stack PHP web app simulating a secure E-Wallet system and a 
 - User registration, login, logout (secure, session-based; password hashing)
 - E-wallet: add funds, send money, transaction history (prepared statements, server-side validation)
 - Dashboard: balance, recent transactions, frequent recipients
-- Cybersecurity Lab: XSS, SQLi, CSRF demos (secure/vulnerable toggle via `secure_toggle.php`)
-- Admin Panel: dashboard, user management, transaction logs (prepared statements, column existence checks)
+- Cybersecurity Lab: XSS (secure/vulnerable toggle via `secure_toggle.php`)
+- Admin Panel: dashboard, user management, (prepared statements, column existence checks)
 - Minimalist, responsive UI (HTML/CSS, fintech-inspired)
 - MySQL database (users, wallets, transactions)
+- This project demonstrates how session hijacking occurs.
+- To prevent brute-force attacks, the email account will be locked for 3 minutes after three incorrect password attempts.
+- Implemented automatic 5-minute session timeout with smart login redirects - because security should never take a break!
 
 ## Setup
 
