@@ -12,8 +12,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt = $conn->prepare($sql);
     $stmt->bind_param('s', $email);
     $stmt->execute();
-    $stmt->bind_result($id, $hash, $is_admin, $failed_attempts, $lock_until);
-    if ($stmt->fetch()) {
+    // Buffer result so we can safely run further queries on the same connection
+    $stmt->store_result();
+
+    if ($stmt->num_rows === 1) {
+        $stmt->bind_result($id, $hash, $is_admin, $failed_attempts, $lock_until);
+        $stmt->fetch();
+        // Close the SELECT statement before any UPDATEs to avoid commands-out-of-sync
+        $stmt->free_result();
+        $stmt->close();
         // Clear expired locks
         if (!empty($lock_until) && strtotime($lock_until) <= time()) {
             $clear = $conn->prepare('UPDATE users SET failed_attempts = 0, lock_until = NULL WHERE id = ?');
@@ -30,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $minutes = floor($remaining / 60);
             $seconds = $remaining % 60;
             $alert = '<div class="alert error">Too many failed attempts. Try again in ' . ($minutes > 0 ? $minutes . 'm ' : '') . $seconds . 's.</div>';
-        } elseif (!$is_admin) {
+        } elseif (!(int)$is_admin) {
             $alert = '<div class="alert error">Invalid credentials or not an admin.</div>';
         } elseif (password_verify($password, $hash)) {
             // Reset counters on success
@@ -38,7 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $reset->bind_param('i', $id);
             $reset->execute();
             $reset->close();
-
+            // Harden session on privilege change
+            session_regenerate_id(true);
             $_SESSION['user_id'] = $id;
             $_SESSION['is_admin'] = true;
             header('Location: index.php');
@@ -63,9 +71,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } else {
+        // No matching account; close statement and show message
+        $stmt->close();
         $alert = '<div class="alert error">Admin account not found.</div>';
     }
-    $stmt->close();
 }
 ?>
 <!DOCTYPE html>
